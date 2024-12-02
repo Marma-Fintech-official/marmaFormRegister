@@ -3,41 +3,60 @@ const path = require('path');
 const fs = require('fs');
 const XLSX = require('xlsx'); // For creating Excel files
 const cloudinary = require('../utils/multer').cloudinary;
+const { appendToSheet } = require('../utils/googleSheets'); // Import the function
 
+
+// POST API to create a user
 const createUser = async (req, res) => {
   try {
-    // Check if user already exists
+    // Check if a user with the same email already exists
     const existingUser = await User.findOne({ email: req.body.email });
     if (existingUser) {
       return res.status(400).json({
         message: 'User with this email already exists. Please use a different email.',
       });
     }
-
-    // Ensure a file is uploaded (if required for the user creation)
-    if (!req.file) {
-      return res.status(400).json({ message: 'Image file is required.' });
-    }
-
-    // Create a new user
+    // Upload the image to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path);
+    // Save the new user to MongoDB
     const newUser = new User({
       ...req.body,
-      photo: req.file.path, // File path uploaded via multer (if needed)
+      photo: result.secure_url,
     });
-
-    // Save the new user to the database
     await newUser.save();
-
-    // Step 1: Return success response with the user data
+    // Prepare user data for Excel export
+    const userData = [
+      newUser.fullName,
+      newUser.dateOfBirth,
+      newUser.contactNumber,
+      newUser.email,
+      newUser.photo,
+      newUser.preferredRole,
+      newUser.playerInformation,
+      newUser.bowlingType,
+      newUser.specialSkills,
+      newUser.jerseySize,
+      newUser.medicalConditions,
+      newUser.emergencyContactName,
+      newUser.emergencyContactInfo,
+      newUser.favoriteCricketer,
+      newUser.acknowledgement,
+      newUser.date,
+    ];
+      // Define the Google Sheets ID and range (Sheet1, starting from row 2)
+      const spreadsheetId = '10pCKmNWIzLU1giavbbF_Tewr-_ccbK8eM4132URvWms'; // Replace with your actual sheet ID
+      const range = 'Sheet1!A2:P';
+       // Append user data to the Google Sheet
+    await appendToSheet(spreadsheetId, range, userData);
     res.status(201).json({
-      message: 'User created successfully.',
-      user: newUser, // Provide the created user data
+      message: 'User created successfully and data exported to Google Sheets',
+      user: newUser,
     });
   } catch (error) {
-    console.error('Error creating user:', error);
     res.status(500).json({ message: 'Error creating user', error });
   }
 };
+
 
 
 const getAllUsers = async (req, res) => {
