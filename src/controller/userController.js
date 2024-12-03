@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const XLSX = require('xlsx'); // For creating Excel files
 const cloudinary = require('../utils/multer').cloudinary;
-const { appendToSheet } = require('../utils/googleSheets'); // Import the function
+const { appendToSheet } = require('../utils/googleSheet'); // Import the function
 
 
 // POST API to create a user
